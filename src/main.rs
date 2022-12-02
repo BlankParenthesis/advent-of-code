@@ -3,6 +3,7 @@ use std::{path::PathBuf, str::Utf8Error};
 use clap::{Parser, builder::PossibleValue};
 
 mod day_1;
+mod day_2;
 
 pub(crate) trait Input: Sized {
 	type Error;
@@ -16,13 +17,6 @@ pub(crate) trait Input: Sized {
 	fn parse_str(data: &str) -> Result<Self, Self::Error>;
 }
 
-pub(crate) trait Solution {
-	type Input: Input;
-	type Output;
-
-	fn solve(input: &Self::Input) -> Self::Output;
-}
-
 #[derive(Debug, Clone, clap::ValueEnum)]
 enum Part {
 	A,
@@ -32,18 +26,21 @@ enum Part {
 #[derive(Debug, Clone)]
 enum Day {
 	One,
+	Two,
 }
 
 impl clap::ValueEnum for Day {
 	fn value_variants<'a>() -> &'a [Self] {
 		&[
 			Day::One,
+			Day::Two,
 		]
 	}
 
 	fn to_possible_value(&self) -> Option<PossibleValue> {
 		match self {
-			Day::One => Some(PossibleValue::new("1").aliases(&["One", "1st", "first"]))
+			Day::One => Some(PossibleValue::new("1").aliases(&["one", "1st", "first"])),
+			Day::Two => Some(PossibleValue::new("2").aliases(&["two", "2nd", "second"])),
 		}
 	}
 }
@@ -65,13 +62,19 @@ fn main() {
 	match (args.day, args.part) {
 		(Day::One, Part::A) => {
 			let input = day_1::CalorieList::parse(&data).expect("input parse error");
-			let solution = day_1::TopCalories::solve(&input);
-			println!("{}", solution);
+			println!("{}", input.top());
 		},
 		(Day::One, Part::B) => {
 			let input = day_1::CalorieList::parse(&data).expect("input parse error");
-			let solution = day_1::Top3Calories::solve(&input);
-			println!("{:?}", solution);
+			println!("{:?}", input.top_n(3));
+		},
+		(Day::Two, Part::A) => {
+			let input = day_2::ActionStrategyGuide::parse(&data).expect("input parse error");
+			println!("{}", input.score());
+		},
+		(Day::Two, Part::B) => {
+			let input = day_2::OutcomeStrategyGuide::parse(&data).expect("input parse error");
+			println!("{}", input.score());
 		},
 	}
 }
