@@ -4,6 +4,7 @@ use clap::{Parser, builder::PossibleValue};
 
 mod day_1;
 mod day_2;
+mod day_3;
 
 pub(crate) trait Input: Sized {
 	type Error;
@@ -27,6 +28,7 @@ enum Part {
 enum Day {
 	One,
 	Two,
+	Three,
 }
 
 impl clap::ValueEnum for Day {
@@ -34,6 +36,7 @@ impl clap::ValueEnum for Day {
 		&[
 			Day::One,
 			Day::Two,
+			Day::Three,
 		]
 	}
 
@@ -41,6 +44,7 @@ impl clap::ValueEnum for Day {
 		match self {
 			Day::One => Some(PossibleValue::new("1").aliases(&["one", "1st", "first"])),
 			Day::Two => Some(PossibleValue::new("2").aliases(&["two", "2nd", "second"])),
+			Day::Three => Some(PossibleValue::new("3").aliases(&["three", "3rd", "third"])),
 		}
 	}
 }
@@ -75,6 +79,14 @@ fn main() {
 		(Day::Two, Part::B) => {
 			let input = day_2::OutcomeStrategyGuide::parse(&data).expect("input parse error");
 			println!("{}", input.score());
+		},
+		(Day::Three, Part::A) => {
+			let input = day_3::Packing::parse(&data).expect("input parse error");
+			println!("{}", input.wrong_item_priority_sum().expect("solve error"));
+		},
+		(Day::Three, Part::B) => {
+			let input = day_3::Packing::parse(&data).expect("input parse error");
+			println!("{}", input.badges_priority_sum().expect("solve error"));
 		},
 	}
 }
