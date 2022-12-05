@@ -1,10 +1,11 @@
-use std::{path::PathBuf, str::Utf8Error};
+use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive};
 
 use clap::{Parser, builder::PossibleValue};
 
 mod day_1;
 mod day_2;
 mod day_3;
+mod day_4;
 
 pub(crate) trait Input: Sized {
 	type Error;
@@ -29,6 +30,7 @@ enum Day {
 	One,
 	Two,
 	Three,
+	Four,
 }
 
 impl clap::ValueEnum for Day {
@@ -37,6 +39,7 @@ impl clap::ValueEnum for Day {
 			Day::One,
 			Day::Two,
 			Day::Three,
+			Day::Four,
 		]
 	}
 
@@ -45,6 +48,7 @@ impl clap::ValueEnum for Day {
 			Day::One => Some(PossibleValue::new("1").aliases(&["one", "1st", "first"])),
 			Day::Two => Some(PossibleValue::new("2").aliases(&["two", "2nd", "second"])),
 			Day::Three => Some(PossibleValue::new("3").aliases(&["three", "3rd", "third"])),
+			Day::Four => Some(PossibleValue::new("4").aliases(&["four", "4th", "fourth"])),
 		}
 	}
 }
@@ -63,7 +67,7 @@ fn main() {
 
 	let data = std::fs::read(args.input_path).expect("invalid path");
 
-	match (args.day, args.part) {
+	match (args.day, &args.part) {
 		(Day::One, Part::A) => {
 			let input = day_1::CalorieList::parse(&data).expect("input parse error");
 			println!("{}", input.top());
@@ -87,6 +91,41 @@ fn main() {
 		(Day::Three, Part::B) => {
 			let input = day_3::Packing::parse(&data).expect("input parse error");
 			println!("{}", input.badges_priority_sum().expect("solve error"));
+		},
+		(Day::Four, _) => {
+			fn parse_range(range: &str) -> RangeInclusive<usize> {
+				let (start, end) = range.split_once('-').unwrap();
+				let start = start.parse::<usize>().unwrap();
+				let end = end.parse::<usize>().unwrap();
+				start..=end
+			}
+
+			let pairs = std::str::from_utf8(&data).unwrap()
+				.split('\n')
+				.map(|pair| {
+					let (a, b) = pair.split_once(',').unwrap();
+					(parse_range(a), parse_range(b))
+				})
+				.collect::<Vec<(RangeInclusive<usize>, RangeInclusive<usize>)>>();
+			
+
+			match args.part {
+				Part::A => {
+					let overlapping = pairs.iter().filter(|(a, b)| {
+						b.clone().step_by(1).all(|v| a.contains(&v)) ||
+						a.clone().step_by(1).all(|v| b.contains(&v))
+					});
+		
+					println!("{:?}", overlapping.count())
+				},
+				Part::B => {
+					let overlapping = pairs.iter().filter(|(a, b)| {
+						b.clone().step_by(1).any(|v| a.contains(&v))
+					});
+		
+					println!("{:?}", overlapping.count())
+				},
+			}
 		},
 	}
 }
