@@ -32,6 +32,7 @@ enum Day {
 	Three,
 	Four,
 	Five,
+	Six,
 }
 
 impl clap::ValueEnum for Day {
@@ -42,6 +43,7 @@ impl clap::ValueEnum for Day {
 			Day::Three,
 			Day::Four,
 			Day::Five,
+			Day::Six,
 		]
 	}
 
@@ -52,6 +54,7 @@ impl clap::ValueEnum for Day {
 			Day::Three => Some(PossibleValue::new("3").aliases(&["three", "3rd", "third"])),
 			Day::Four => Some(PossibleValue::new("4").aliases(&["four", "4th", "fourth"])),
 			Day::Five => Some(PossibleValue::new("5").aliases(&["five", "5th", "fifth"])),
+			Day::Six => Some(PossibleValue::new("6").aliases(&["six", "6th", "sixth"])),
 		}
 	}
 }
@@ -198,6 +201,26 @@ fn main() {
 				.map(|stack| stack.back().unwrap_or(&' '))
 				.collect::<String>();
 			println!("{}", message);
+		},
+		(Day::Six, _) => {
+			let size = match args.part {
+				Part::A => 4,
+				Part::B => 14,
+			};
+
+			let index = data.windows(size)
+				.position(|window| {
+					let mut bitset: usize = 0;
+					for byte in window {
+						let byte_index = byte - b'a';
+						bitset |= 1 << byte_index;
+					}
+
+					(bitset.count_ones() as usize) == size
+				})
+				.unwrap();
+
+			println!("{}", index + size);
 		},
 	}
 }
