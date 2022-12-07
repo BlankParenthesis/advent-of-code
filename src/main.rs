@@ -1,6 +1,7 @@
 use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive};
 
 use clap::{Parser, builder::PossibleValue};
+use nom::{bytes::complete::tag, sequence::{preceded, tuple}, combinator::map_res, character::complete::digit1};
 
 mod day_1;
 mod day_2;
@@ -137,19 +138,24 @@ fn main() {
 			let (arrangement, instructions) = std::str::from_utf8(&data).unwrap()
 				.split_once("\n\n").unwrap();
 
+			fn take_number(input: &str) -> nom::IResult<&str, usize> {
+				map_res(digit1, str::parse)(input)
+			}
+
 			struct Instruction {
 				source: usize,
-				dest: usize,
+				destination: usize,
 				count: usize,
 			}
 
 			let instructions = instructions.split('\n').map(|i| {
-				let (count, locations) = i[5..].split_once(" from ").unwrap();
-				let (source, dest) = locations.split_once(" to ").unwrap();
-				let count = count.parse().unwrap();
-				let source = source.parse().unwrap();
-				let dest = dest.parse().unwrap();
-				Instruction { source, dest, count }
+				let (_, (count, source, destination)) = tuple((
+					preceded(tag("move "), take_number),
+					preceded(tag(" from "), take_number),
+					preceded(tag(" to "), take_number),
+				))(i).unwrap();
+
+				Instruction { source, destination, count }
 			});
 
 			let mut arrangement = arrangement.split('\n').rev();
@@ -174,7 +180,7 @@ fn main() {
 			}
 
 
-			for Instruction { source, dest, count }  in instructions {
+			for Instruction { source, destination: dest, count }  in instructions {
 				let source = labels.iter().position(|i| *i == source).unwrap();
 				let dest = labels.iter().position(|i| *i == dest).unwrap();
 
