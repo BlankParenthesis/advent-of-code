@@ -7,6 +7,7 @@ mod day_1;
 mod day_2;
 mod day_3;
 mod day_4;
+mod day_7;
 
 pub(crate) trait Input: Sized {
 	type Error;
@@ -34,6 +35,7 @@ enum Day {
 	Four,
 	Five,
 	Six,
+	Seven,
 }
 
 impl clap::ValueEnum for Day {
@@ -45,6 +47,7 @@ impl clap::ValueEnum for Day {
 			Day::Four,
 			Day::Five,
 			Day::Six,
+			Day::Seven,
 		]
 	}
 
@@ -56,6 +59,7 @@ impl clap::ValueEnum for Day {
 			Day::Four => Some(PossibleValue::new("4").aliases(&["four", "4th", "fourth"])),
 			Day::Five => Some(PossibleValue::new("5").aliases(&["five", "5th", "fifth"])),
 			Day::Six => Some(PossibleValue::new("6").aliases(&["six", "6th", "sixth"])),
+			Day::Seven => Some(PossibleValue::new("7").aliases(&["seven", "7th", "seventh"])),
 		}
 	}
 }
@@ -228,5 +232,18 @@ fn main() {
 
 			println!("{}", index + size);
 		},
+		(Day::Seven, _) => {
+			let tree = day_7::Directory::create_from_str(std::str::from_utf8(&data).unwrap()).unwrap();
+
+			let size = match args.part {
+				Part::A => {
+					println!("{:?}", day_7::solve_a(&tree));
+				},
+				Part::B => {
+					println!("{:?}", day_7::solve_b(&tree));
+				},
+			};
+
+		}
 	}
 }
