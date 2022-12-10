@@ -1,4 +1,4 @@
-use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive};
+use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive, collections::HashSet};
 
 use clap::{Parser, builder::PossibleValue};
 use nom::{bytes::complete::tag, sequence::{preceded, tuple}, combinator::map_res, character::complete::digit1};
@@ -37,6 +37,8 @@ enum Day {
 	Six,
 	Seven,
 	Eight,
+	Nine,
+	Ten,
 }
 
 impl clap::ValueEnum for Day {
@@ -50,6 +52,8 @@ impl clap::ValueEnum for Day {
 			Day::Six,
 			Day::Seven,
 			Day::Eight,
+			Day::Nine,
+			Day::Ten,
 		]
 	}
 
@@ -63,6 +67,8 @@ impl clap::ValueEnum for Day {
 			Day::Six => Some(PossibleValue::new("6").aliases(&["six", "6th", "sixth"])),
 			Day::Seven => Some(PossibleValue::new("7").aliases(&["seven", "7th", "seventh"])),
 			Day::Eight => Some(PossibleValue::new("8").aliases(&["eight", "8th", "eighth"])),
+			Day::Nine => Some(PossibleValue::new("9").aliases(&["nine", "9th", "ninth"])),
+			Day::Ten => Some(PossibleValue::new("10").aliases(&["ten", "10th", "tenth"])),
 		}
 	}
 }
@@ -363,6 +369,168 @@ fn main() {
 					println!("{:?}", scenic_score.iter().flatten().max().unwrap());
 				},
 			};
-		}
+		},
+		(Day::Nine, _) => {
+			let input = std::str::from_utf8(&data).expect("input parse error");
+
+			enum Direction {
+				Right,
+				Left,
+				Down,
+				Up,
+			}
+
+			struct Movement {
+				direction: Direction,
+				count: isize,
+			}
+
+			impl TryFrom<char> for Direction {
+				type Error = ();
+
+				fn try_from(c: char) -> Result<Self, Self::Error> {
+					match c {
+						'R' => Ok(Self::Right),
+						'L' => Ok(Self::Left),
+						'D' => Ok(Self::Down),
+						'U' => Ok(Self::Up),
+						_ => Err(()),
+					}
+				}
+			}
+
+			let instructions = input.split('\n')
+				.map(|line| {
+					let (d, c) = line.split_once(' ').unwrap();
+					let direction = Direction::try_from(d.chars().next().unwrap()).unwrap();
+					let count = c.parse::<isize>().unwrap();
+
+					Movement { direction, count }
+				})
+				.collect::<Vec<_>>();
+
+			let rope_length = match args.part {
+				Part::A => 2,
+				Part::B => 10,
+			};
+
+			let mut visited_positions: HashSet<(isize, isize)> = HashSet::new();
+			let mut positions = vec![(0, 0); rope_length];
+			
+			visited_positions.insert(*positions.last().unwrap());
+
+			for instruction in instructions {
+				for _ in 0..instruction.count {
+					match instruction.direction {
+						Direction::Down => positions[0].1 += 1,
+						Direction::Left => positions[0].0 -= 1,
+						Direction::Right => positions[0].0 += 1,
+						Direction::Up => positions[0].1 -= 1,
+					}
+
+					for i in 1..positions.len() {
+						let previous = positions[i - 1];
+						let current = &mut positions[i];
+						
+						let diff_x = isize::abs_diff(previous.0, current.0);
+						let diff_y = isize::abs_diff(previous.1, current.1);
+
+						if diff_x > 1 || diff_y > 1 {
+							current.0 += (previous.0 - current.0).clamp(-1, 1);
+							current.1 += (previous.1 - current.1).clamp(-1, 1);
+						}
+					}
+
+					visited_positions.insert(*positions.last().unwrap());
+				}
+			}
+
+			println!("{}", visited_positions.len());
+		},
+		(Day::Ten, _) => {
+			enum Instruction {
+				NoOp,
+				AddX(isize),
+			}
+
+			impl Instruction {
+				fn execution_time(&self) -> usize {
+					match self {
+						Self::NoOp => 1,
+						Self::AddX(_) => 2,
+					}
+				}
+			}
+
+			impl TryFrom<&str> for Instruction {
+				type Error = ();
+
+				fn try_from(string: &str) -> Result<Self, Self::Error> {
+					if string == "noop" {
+						Ok(Instruction::NoOp)
+					} else {
+						let (i, value) = string.split_once(' ').ok_or(())?;
+						let value = value.parse::<isize>().map_err(|_| ())?;
+
+						if i == "addx" {
+							Ok(Instruction::AddX(value))
+						} else {
+							Err(())
+						}
+					}
+				}
+			}
+
+			let instructions = std::str::from_utf8(&data).unwrap()
+				.split('\n')
+				.map(Instruction::try_from)
+				.collect::<Result<Vec<_>, _>>()
+				.unwrap();
+
+
+			let mut x_reg = 1;
+			let mut strength = 0_isize;
+			
+			const FIRST_CYCLE: isize = 20;
+			const CYCLE_INTERVAL: isize = 40;
+
+			let mut cycle = 0;
+
+			for instruction in instructions {
+				for _ in 0..instruction.execution_time() {
+					cycle += 1;
+
+					match args.part {
+						Part::A => {
+							if (cycle - FIRST_CYCLE) % CYCLE_INTERVAL == 0 {
+								strength += cycle * x_reg;
+							}
+						},
+						Part::B => {
+							let position = (cycle - 1) % CYCLE_INTERVAL;
+
+							if isize::abs_diff(x_reg, position) < 2 {
+								print!("#");
+							} else {
+								print!(".");
+							}
+							
+							if cycle % CYCLE_INTERVAL == 0 {
+								println!();
+							}
+						},
+					}
+				}
+
+				match instruction {
+					Instruction::NoOp => (),
+					Instruction::AddX(value) => x_reg += value,
+				}
+			}
+
+			if matches![args.part, Part::A] {
+				println!("{}", strength);
+			}
+		},
 	}
 }
