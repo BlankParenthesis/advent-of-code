@@ -1,7 +1,7 @@
-use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive, collections::{HashSet, HashMap}};
+use std::{path::PathBuf, str::Utf8Error, ops::RangeInclusive, collections::{HashSet, HashMap}, cmp::Ordering};
 
 use clap::{Parser, builder::PossibleValue};
-use nom::{bytes::complete::tag, sequence::{preceded, tuple}, combinator::{map_res, map}, character::complete::digit1, multi::separated_list0, Parser as NomParser};
+use nom::{bytes::complete::tag, sequence::{preceded, tuple, delimited}, combinator::{map_res, map}, character::complete::digit1, multi::separated_list0, Parser as NomParser};
 
 mod day_1;
 mod day_2;
@@ -41,6 +41,7 @@ enum Day {
 	Ten,
 	Eleven,
 	Twelve,
+	Thirteen,
 }
 
 impl clap::ValueEnum for Day {
@@ -58,6 +59,7 @@ impl clap::ValueEnum for Day {
 			Day::Ten,
 			Day::Eleven,
 			Day::Twelve,
+			Day::Thirteen,
 		]
 	}
 
@@ -75,6 +77,7 @@ impl clap::ValueEnum for Day {
 			Day::Ten => Some(PossibleValue::new("10").aliases(&["ten", "10th", "tenth"])),
 			Day::Eleven => Some(PossibleValue::new("11").aliases(&["eleven", "11th", "eleventh"])),
 			Day::Twelve => Some(PossibleValue::new("12").aliases(&["twelve", "12th", "twelfth"])),
+			Day::Thirteen => Some(PossibleValue::new("13").aliases(&["thirteen", "13th", "thirteen"])),
 		}
 	}
 }
@@ -756,6 +759,91 @@ fn main() {
 						.reduce(u32::min);
 
 					println!("{:?}", lowest);
+				},
+			}
+		},
+		(Day::Thirteen, _) => {
+			fn take_number<Num>(input: &str) -> nom::IResult<&str, Num>
+			where Num: std::str::FromStr{
+				map_res(digit1, str::parse)(input)
+			}
+
+			#[derive(Debug, Clone, PartialEq, Eq)]
+			enum Value {
+				Int(u8),
+				List(Vec<Value>),
+			}
+
+			impl Value {
+				fn parse(input: &str) -> nom::IResult<&str, Self> {
+					let as_int = map(take_number, Self::Int)(input);
+					let as_list = map(delimited(tag("["), separated_list0(tag(","), Value::parse), tag("]")), Self::List)(input);
+					as_int.or(as_list)
+				}
+			}
+
+			impl PartialOrd for Value {
+				fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+					match (self, other) {
+						(Value::Int(a), Value::Int(b)) => a.partial_cmp(b),
+						(Value::Int(a), Value::List(_)) => {
+							Value::List(vec![Value::Int(*a)]).partial_cmp(other)
+						},
+						(Value::List(_), Value::Int(b)) => {
+							self.partial_cmp(&Value::List(vec![Value::Int(*b)]))
+						},
+						(Value::List(a), Value::List(b)) => {
+							a.partial_cmp(b)
+						},
+					}
+				}
+			}
+		
+			impl Ord for Value {
+				fn cmp(&self, other: &Self) -> Ordering {
+					self.partial_cmp(other).unwrap()
+				}
+			}
+
+			match args.part {
+				Part::A => {
+					let pairs = std::str::from_utf8(&data).unwrap()
+						.split("\n\n")
+						.map(|p| {
+							let (a, b) = p.split_once('\n').unwrap();
+							(Value::parse(a).unwrap().1, Value::parse(b).unwrap().1)
+						})
+						.collect::<Vec<_>>();
+
+					let sorted = pairs.iter()
+						.map(|(a, b)| matches!(a.cmp(b), Ordering::Less))
+						.enumerate()
+						.filter_map(|(i, o)| if o { Some(i + 1) } else { None })
+						.sum::<usize>();
+
+					println!("{:?}", sorted);
+				},
+				Part::B => {
+					let markers = [
+						Value::List(vec![Value::List(vec![Value::Int(2)])]),
+						Value::List(vec![Value::List(vec![Value::Int(6)])]),
+					];
+
+					let mut packets = std::str::from_utf8(&data).unwrap()
+						.split('\n')
+						.filter(|s| !s.is_empty())
+						.map(|p| Value::parse(p).unwrap().1)
+						.chain(markers.clone())
+						.collect::<Vec<_>>();
+
+					packets.sort();
+
+					let decoder_key = markers.iter()
+						.map(|m| packets.iter().position(|v| v.eq(m)).unwrap())
+						.map(|p| p + 1)
+						.product::<usize>();
+					
+					println!("{}", decoder_key);
 				},
 			}
 		},
