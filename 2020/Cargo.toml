@@ -1,0 +1,12 @@
+[package]
+name = "advent_of_code_2020"
+version = "0.1.0"
+authors = ["[  ] <blank.parenthesis@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+itertools = "0.8.0"
+regex = "1.4.0"
+ndarray = "0.14.0"
