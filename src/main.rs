@@ -9,6 +9,7 @@ mod day_2;
 mod day_3;
 mod day_4;
 mod day_7;
+mod day_19;
 
 pub(crate) trait Input: Sized {
 	type Error;
@@ -48,6 +49,7 @@ enum Day {
 	Sixteen,
 	Seventeen,
 	Eighteen,
+	Nineteen,
 }
 
 impl clap::ValueEnum for Day {
@@ -71,6 +73,7 @@ impl clap::ValueEnum for Day {
 			Day::Sixteen,
 			Day::Seventeen,
 			Day::Eighteen,
+			Day::Nineteen,
 		]
 	}
 
@@ -94,6 +97,7 @@ impl clap::ValueEnum for Day {
 			Day::Sixteen => Some(PossibleValue::new("16").aliases(&["sixteen", "16th", "sixteenth"])),
 			Day::Seventeen => Some(PossibleValue::new("17").aliases(&["seventeen", "17th", "seventeenth"])),
 			Day::Eighteen => Some(PossibleValue::new("18").aliases(&["eighteen", "18th", "eighteenth"])),
+			Day::Nineteen => Some(PossibleValue::new("19").aliases(&["nineteen", "19th", "nineteenth"])),
 		}
 	}
 }
@@ -107,17 +111,17 @@ struct Args {
 	input_path: PathBuf,
 }
 
-fn take_positive_number<Num>(input: &str) -> nom::IResult<&str, Num>
+pub fn take_positive_number<Num>(input: &str) -> nom::IResult<&str, Num>
 where Num: std::str::FromStr {
 	map_res(digit1, str::parse)(input)
 }
 
-fn take_negative_number<Num>(input: &str) -> nom::IResult<&str, Num>
+pub fn take_negative_number<Num>(input: &str) -> nom::IResult<&str, Num>
 where Num: std::str::FromStr {
 	preceded(tag("-"), map_res(digit1, |d: &str| str::parse(("-".to_owned() + d).as_str())))(input)
 }
 
-fn take_number<Num>(input: &str) -> nom::IResult<&str, Num>
+pub fn take_number<Num>(input: &str) -> nom::IResult<&str, Num>
 where Num: std::str::FromStr {
 	take_positive_number(input)
 	.or_else(|_| take_negative_number(input))
@@ -1649,6 +1653,21 @@ fn main() {
 					println!("{}", faces);
 				}
 			}
+		},
+		(Day::Nineteen, _) => {
+			unimplemented!("Day 19 unsolved");
+
+			let blueprints = day_19::Blueprint::parse_all(std::str::from_utf8(&data).unwrap()).unwrap().1;
+
+			const TIME_AVAILABLE: isize = 24;
+
+			let quality_sum = blueprints.iter()
+				//.map(|b| b.id * b.find_max_geodes(None, TIME_AVAILABLE))
+				//.sum::<usize>();
+				.take(1)
+				.map(|b| b.find_max_geodes(TIME_AVAILABLE))
+				.collect::<Vec<_>>();
+			println!("{:?}", quality_sum);
 		},
 	}
 }
